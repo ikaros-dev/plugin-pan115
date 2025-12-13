@@ -1,4 +1,4 @@
-package run.ikaros.plugin.starter;
+package run.ikaros.plugin.pan115;
 
 
 import lombok.extern.slf4j.Slf4j;
@@ -7,16 +7,14 @@ import org.springframework.stereotype.Component;
 import run.ikaros.api.core.task.TaskOperate;
 import run.ikaros.api.plugin.BasePlugin;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.Random;
 
 @Slf4j
 @Component
-public class StarterPlugin extends BasePlugin {
+public class Pan115Plugin extends BasePlugin {
     private final TaskOperate taskOperate;
 
-    public StarterPlugin(PluginWrapper wrapper, TaskOperate taskOperate) {
+    public Pan115Plugin(PluginWrapper wrapper, TaskOperate taskOperate) {
         super(wrapper);
         this.taskOperate = taskOperate;
     }
