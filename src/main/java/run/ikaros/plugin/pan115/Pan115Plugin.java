@@ -21,7 +21,7 @@ public class Pan115Plugin extends BasePlugin {
 
     @Override
     public void start() {
-        log.info("plugin [PluginStarter] start success");
+        log.info("plugin [Pan115Plugin] start success");
         // submitParallelTask();
     }
 
@@ -48,11 +48,11 @@ public class Pan115Plugin extends BasePlugin {
 
     @Override
     public void stop() {
-        log.info("plugin [PluginStarter] stop success");
+        log.info("plugin [Pan115Plugin] stop success");
     }
 
     @Override
     public void delete() {
-        log.info("plugin [PluginStarter] delete success");
+        log.info("plugin [Pan115Plugin] delete success");
     }
 }
