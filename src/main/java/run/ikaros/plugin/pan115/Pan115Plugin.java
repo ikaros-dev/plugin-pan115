@@ -22,28 +22,6 @@ public class Pan115Plugin extends BasePlugin {
     @Override
     public void start() {
         log.info("plugin [Pan115Plugin] start success");
-        // submitParallelTask();
-    }
-
-    private void submitParallelTask() {
-        for (int i = 0; i < 10; i++) {
-            int finalI = i;
-            taskOperate.submit(getWrapper().getPluginId() + "-parallel-" + i,
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            log.info("Submit task with index:{}", finalI);
-                            try {
-                                Thread.sleep(new Random().nextLong(0, 5000));
-                            } catch (InterruptedException e) {
-                                throw new RuntimeException(e);
-                            }
-                            log.info("Finish task with index:{}", finalI);
-
-                        }
-                    })
-                    .subscribe();
-        }
     }
 
     @Override
