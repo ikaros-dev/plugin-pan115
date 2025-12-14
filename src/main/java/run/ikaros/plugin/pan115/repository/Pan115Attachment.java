@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Builder
@@ -31,7 +31,19 @@ public class Pan115Attachment {
     private int fvs;
     private int fuuid;
     private int opt;
-    private ArrayList<Object> fl;
+    private List<Object> fl;
     private int issct;
     private int is_top;
+    private String sha1;
+    private int fs;
+    private String fta;
+    private String ico;
+    private String fatr;
+    private int isv;
+    private int def;
+    private int def2;
+    private long play_long;
+    private String v_img;
+    private String thumb;
+    private String uo;
 }

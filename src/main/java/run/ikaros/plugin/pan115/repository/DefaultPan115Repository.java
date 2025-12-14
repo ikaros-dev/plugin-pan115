@@ -7,15 +7,11 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-import run.ikaros.api.core.attachment.Attachment;
-import run.ikaros.api.core.attachment.AttachmentDriver;
-import run.ikaros.api.core.setting.ConfigMap;
 import run.ikaros.plugin.pan115.Pan115Const;
 import run.ikaros.plugin.pan115.utils.JsonUtils;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static run.ikaros.plugin.pan115.Pan115Const.*;
 
