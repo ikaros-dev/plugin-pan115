@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.*;
 import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
@@ -25,10 +26,7 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static run.ikaros.plugin.pan115.Pan115Const.*;
 
@@ -141,11 +139,12 @@ public class DefaultPan115Repository implements Pan115Repository {
         final String url = API_BASE + "/open/refreshToken";
         try {
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("refresh_token", String.valueOf(refreshToken));
+            body.put("refresh_token", List.of(refreshToken));
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             Pan115Result<LinkedHashMap<String, Object>> result = restTemplate.exchange(url, HttpMethod.POST,
                     new HttpEntity<>(body, headers), Pan115Result.class).getBody();
             if (result == null || !result.getState()) {
+                log.error("Refresh pan115 token fail for result:{}", result);
                 throw new Pan115RequestFailException("Refresh pan115 token fail: " + result.getMessage(), result.getCode());
             }
             Map<String, Object> dataMap = result.getData();
@@ -221,4 +220,8 @@ public class DefaultPan115Repository implements Pan115Repository {
         }
     }
 
+    @Scheduled(fixedDelay = 5000)  // 5秒
+    public void fixedDelayTask() {
+        log.info("Fixed delay task - " + new Date());
+    }
 }

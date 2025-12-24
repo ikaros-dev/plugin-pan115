@@ -12,6 +12,7 @@ import run.ikaros.api.core.attachment.AttachmentDriver;
 import run.ikaros.api.core.attachment.AttachmentDriverFetcher;
 import run.ikaros.api.core.attachment.AttachmentDriverOperate;
 import run.ikaros.api.infra.utils.StringUtils;
+import run.ikaros.api.wrap.PagingWrap;
 import run.ikaros.api.store.enums.AttachmentDriverType;
 import run.ikaros.api.store.enums.AttachmentType;
 import run.ikaros.plugin.pan115.model.Pan115Attachment;
@@ -48,12 +49,24 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
         return "PAN115";
     }
 
+    public Mono<Void> checkoutAllDriverToken() {
+        return driverOperate.listDriversByCondition(1, 99999)
+                .filter(pagingWrap -> !pagingWrap.isEmpty())
+                .flatMapMany(pagingWrap -> Flux.fromStream(pagingWrap.getItems().stream()))
+                .filter(driver -> getDriverType().equals(driver.getType()))
+                .filter(driver -> getDriverName().equals(driver.getName()))
+                .map(AttachmentDriver::getId)
+                .flatMap(this::checkoutToken)
+                .then();
+    }
+
     private Mono<AttachmentDriver> checkoutToken(Long driverId) {
         Assert.isTrue(driverId >= 0, "driverId is negative");
+        log.debug("Do checkoutToken for driverId={}", driverId);
         return driverOperate.findById(driverId)
                 .flatMap(driver -> {
                     if (driver.getExpireTime() == null
-                            || driver.getExpireTime().plusSeconds(10).isBefore(LocalDateTime.now())) {
+                            || driver.getExpireTime().plusMinutes(35).isBefore(LocalDateTime.now())) {
                         applyPan115Token(driver);
                     }
 
@@ -158,8 +171,6 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
 
     private void applyPan115Token(AttachmentDriver driver) {
         Assert.notNull(driver, "'driver' must not null.");
-        if (driver.getExpireTime() != null
-                && driver.getExpireTime().isAfter(LocalDateTime.now().plusSeconds(10))) return;
         pan115Repository.refreshToken(driver);
     }
 
