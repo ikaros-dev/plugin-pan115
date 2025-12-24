@@ -177,7 +177,8 @@ public class DefaultPan115Repository implements Pan115Repository {
                 throw new Pan115RequestFailException("Req openUFileDownUrl fail: " + result.getMessage(), result.getCode());
             }
             Map<String, Object> dataMap = result.getData();
-            Map<String, LinkedHashMap> map = JsonUtils.json2obj(JsonUtils.obj2Json(dataMap.get(pickCode)), LinkedHashMap.class);
+            String key = dataMap.keySet().stream().findFirst().get();
+            Map<String, LinkedHashMap> map = JsonUtils.json2obj(JsonUtils.obj2Json(dataMap.get(key)), LinkedHashMap.class);
             LinkedHashMap url1 = map.get("url");
             Object url2 = url1.get("url");
             log.debug("Pull [{}] result is [{}].", url, result);
