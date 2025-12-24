@@ -5,7 +5,7 @@ name: PluginPan115
 clazz: run.ikaros.plugin.pan115.Pan115Plugin
 # plugin 'version' is a valid semantic version string (see semver.org).
 version: 1.0.0
-requires: ">=1.0.0"
+requires: ">=1.0.4"
 author:
   name: Ikaros OSS Team
   website: https://github.com/ikaros-dev
