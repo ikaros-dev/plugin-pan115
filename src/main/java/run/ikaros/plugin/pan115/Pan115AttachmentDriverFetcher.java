@@ -28,7 +28,6 @@ import java.util.List;
 
 @Slf4j
 @Extension
-@Component
 public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
 
     private final Pan115Repository pan115Repository;
@@ -66,7 +65,7 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
         return driverOperate.findById(driverId)
                 .flatMap(driver -> {
                     if (driver.getExpireTime() == null
-                            || driver.getExpireTime().plusMinutes(35).isBefore(LocalDateTime.now())) {
+                            || driver.getExpireTime().isBefore(LocalDateTime.now())) {
                         applyPan115Token(driver);
                     }
 
