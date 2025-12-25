@@ -97,29 +97,29 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
                 })
                 .map(att -> {
                     final String fid = att.getFid();
-                    Pan115Folder pan115Folder = pan115Repository.openFolderGetInfo(fid);
+                    //Pan115Folder pan115Folder = pan115Repository.openFolderGetInfo(fid);
                     String path = "";
-                    for (Pan115Path pan115Path : pan115Folder.getPaths()) {
+                    for (Pan115Path pan115Path : att.getPath()) {
                         path += pan115Path.getFile_name();
                         path += "/";
                     }
 
-                    AttachmentType type = "1".equals(pan115Folder.getFile_category())
+                    AttachmentType type = "1".equals(att.getFc())
                             ? AttachmentType.Driver_File
                             : AttachmentType.Driver_Directory;
                     Attachment attachment = new Attachment();
-                    attachment.setSize(pan115Folder.getSize_byte());
+                    attachment.setSize(att.getFs());
                     attachment.setType(type);
-                    attachment.setName(pan115Folder.getFile_name());
+                    attachment.setName(att.getFn());
                     attachment.setUpdateTime(
-                            LocalDateTime.ofInstant(Instant.ofEpochMilli(Long.parseLong(pan115Folder.getUtime())),
+                            LocalDateTime.ofInstant(Instant.ofEpochMilli(att.getUpt()),
                                     ZoneId.systemDefault()));
                     attachment.setDriverId(driverId);
                     attachment.setDeleted(false);
-                    attachment.setSha1(pan115Folder.getSha1());
+                    attachment.setSha1(att.getSha1());
                     attachment.setParentId(pid);
-                    attachment.setFsPath(pan115Folder.getFile_id()); // @see core: AttachmentDriverServiceImpl#refreshRemoteFileSystem
-                    String url = pan115Folder.getPick_code();
+                    attachment.setFsPath(att.getFid()); // @see core: AttachmentDriverServiceImpl#refreshRemoteFileSystem
+                    String url = att.getPc();
                     if (StringUtils.isNotBlank(att.getIco())
                             && FileUtils.isImage(att.getIco())) {
                         url = att.getUo();

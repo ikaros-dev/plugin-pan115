@@ -46,4 +46,5 @@ public class Pan115Attachment {
     private String v_img;
     private String thumb;
     private String uo;
+    private List<Pan115Path> path;
 }
