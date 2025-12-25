@@ -88,11 +88,14 @@ public class DefaultPan115Repository implements Pan115Repository {
             Pan115Path[] parentPath = JsonUtils.json2ObjArr(JsonUtils.obj2Json(pathObj), new TypeReference<>() {
             });
             for (Pan115Attachment pan115Attachment : pan115Attachments) {
-                List<Pan115Path> newPaths = List.of(parentPath);
+                List<Pan115Path> newPaths = new ArrayList<>();
                 Pan115Path lastPath = new Pan115Path();
                 lastPath.setFile_id(Long.parseLong(pan115Attachment.getFid()));
                 lastPath.setFile_name(pan115Attachment.getFn());
                 lastPath.setIss(String.valueOf(pan115Attachment.getIss()));
+                for (Pan115Path pan115Path : parentPath) {
+                    newPaths.add(pan115Path);
+                }
                 newPaths.add(lastPath);
                 pan115Attachment.setPath(newPaths);
             }
