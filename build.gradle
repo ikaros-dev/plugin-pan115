@@ -28,6 +28,7 @@ dependencies {
     compileOnly "org.springdoc:springdoc-openapi-starter-webflux-api:2.0.2"
 
     compileOnly files(libFile)
+    testCompileOnly files(libFile)
     testRuntimeOnly files(libFile)
 
     testRuntimeOnly "org.springframework:spring-context:$springContext"

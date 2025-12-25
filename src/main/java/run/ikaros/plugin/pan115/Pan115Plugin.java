@@ -30,7 +30,7 @@ public class Pan115Plugin extends BasePlugin {
 
     @Override
     public void start() {
-        startRefreshTokenTask = startRefreshTokenTask();
+        // startRefreshTokenTask = startRefreshTokenTask();
         log.info("plugin [Pan115Plugin] start success");
     }
 

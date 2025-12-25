@@ -95,8 +95,6 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
 
                     return Flux.fromStream(pan115Attachments.stream());
                 })
-                .parallel(5)
-                .runOn(Schedulers.boundedElastic())
                 .map(att -> {
                     final String fid = att.getFid();
                     Pan115Folder pan115Folder = pan115Repository.openFolderGetInfo(fid);
@@ -129,8 +127,7 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
                     attachment.setUrl(url);
                     attachment.setPath(path);
                     return attachment;
-                })
-                .sequential();
+                });
     }
 
     @Override

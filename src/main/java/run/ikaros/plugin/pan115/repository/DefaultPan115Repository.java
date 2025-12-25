@@ -136,7 +136,7 @@ public class DefaultPan115Repository implements Pan115Repository {
         final String refreshToken = driver.getRefreshToken();
         refreshHttpHeaders(driver.getAccessToken());
         Assert.hasText(refreshToken, "'refreshToken' must has text.");
-        final String url = API_BASE + "/open/refreshToken";
+        final String url = "https://passportapi.115.com/open/refreshToken";
         try {
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.put("refresh_token", List.of(refreshToken));
