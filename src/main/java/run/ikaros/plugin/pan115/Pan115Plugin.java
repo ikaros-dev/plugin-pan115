@@ -16,27 +16,13 @@ import java.util.Objects;
 @Slf4j
 @Component
 public class Pan115Plugin extends BasePlugin {
-    private final Pan115AttachmentDriverFetcher driverFetcher;
-
-    public Pan115Plugin(PluginWrapper wrapper, Pan115AttachmentDriverFetcher driverFetcher) {
+    public Pan115Plugin(PluginWrapper wrapper) {
         super(wrapper);
-        this.driverFetcher = driverFetcher;
     }
 
     @Override
     public void start() {
         log.info("plugin [Pan115Plugin] start success");
-    }
-
-    public Disposable startRefreshTokenTask() {
-        return Flux.interval(Duration.ofMinutes(30))
-                .flatMap(tick -> refreshTokenTask())
-                .subscribeOn(Schedulers.newSingle("RefreshTokenTask", true))
-                .subscribe();
-    }
-
-    private Mono<Void> refreshTokenTask() {
-        return driverFetcher.checkoutAllDriverToken();
     }
 
     @Override

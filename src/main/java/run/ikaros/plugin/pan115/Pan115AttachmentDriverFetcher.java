@@ -61,13 +61,11 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
         Assert.isTrue(driverId >= 0, "driverId is negative");
         log.debug("Do checkoutToken for driverId={}", driverId);
         return driverOperate.findById(driverId)
-                .filter(driver -> driver.getExpireTime() == null
-                        || driver.getExpireTime().isBefore(LocalDateTime.now()))
-                .flatMap(this::applyPan115Token)
-                .flatMap(driver -> {
-                    pan115Repository.refreshHttpHeaders(driver.getAccessToken());
-                    return driverOperate.save(driver);
-                }).switchIfEmpty(driverOperate.findById(driverId));
+                .filter(driver -> driver.getExpireTime() != null
+                && driver.getExpireTime().isAfter(LocalDateTime.now()))
+                .switchIfEmpty(driverOperate.findById(driverId)
+                        .flatMap(this::applyPan115Token)
+                        .flatMap(driverOperate::save));
     }
 
     @Override
