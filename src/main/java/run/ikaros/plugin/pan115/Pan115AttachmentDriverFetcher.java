@@ -86,10 +86,8 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
                     }
 
                     pan115Repository.refreshHttpHeaders(driver.getAccessToken());
-                    List<Pan115Attachment> pan115Attachments =
-                            pan115Repository.openUFileFiles(cid, listPageSize.intValue(), 1, 1);
 
-                    return Flux.fromStream(pan115Attachments.stream());
+                    return pan115Repository.openUFileFiles(cid, listPageSize.intValue(), 1, 1);
                 })
                 .map(att -> {
                     final String fid = att.getFid();
@@ -137,7 +135,7 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
         if (FileUtils.isImage(name)) {
             return checkoutMono.map(driver -> attachment.getUrl());
         } else if (FileUtils.isVideo(name)) {
-            return checkoutMono.map(driver -> pan115Repository.openVideoPlay(attachment.getUrl()));
+            return checkoutMono.flatMap(driver -> pan115Repository.openVideoPlay(attachment.getUrl()));
         } else if (FileUtils.isVoice(name)) {
             return parseDownloadUrl(attachment);
         } else {
@@ -158,7 +156,7 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
             return checkoutMono.map(driver -> attachment.getUrl());
         } else {
             // not image
-            return checkoutMono.map(driver -> pan115Repository.openUFileDownUrl(attachment.getUrl()));
+            return checkoutMono.flatMap(driver -> pan115Repository.openUFileDownUrl(attachment.getUrl()));
         }
     }
 
@@ -168,8 +166,8 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
         AttachmentType type = attachment.getType();
         if (AttachmentType.Driver_Directory.equals(type)) return Flux.empty();
         Long driverId = attachment.getDriverId();
-        Mono<AttachmentDriver> checkoutMono = checkoutToken(driverId);
-        return checkoutMono.flatMapMany(driver -> pan115Repository.openUFileSteam(attachment.getUrl()));
+        return checkoutToken(driverId)
+                .flatMapMany(driver -> pan115Repository.openUFileSteam(attachment.getUrl()));
     }
 
     @Override
@@ -178,8 +176,7 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
         AttachmentType type = attachment.getType();
         if (AttachmentType.Driver_Directory.equals(type)) return Flux.empty();
         Long driverId = attachment.getDriverId();
-        Mono<AttachmentDriver> checkoutMono = checkoutToken(driverId);
-        return checkoutMono.flatMapMany(driver ->
+        return checkoutToken(driverId).flatMapMany(driver ->
                 pan115Repository.openUFileSteamWithRange(attachment.getUrl(), start, end));
     }
 

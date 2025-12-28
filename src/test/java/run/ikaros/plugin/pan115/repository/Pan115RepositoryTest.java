@@ -9,10 +9,10 @@ class Pan115RepositoryTest {
 
     //@Test
     void refreshToken() {
-        Pan115Repository pan115Repository = new DefaultPan115Repository();
-        pan115Repository.refreshHttpHeaders("");
-        pan115Repository.refreshToken(AttachmentDriver.builder()
-                        .accessToken("").refreshToken(System.getenv("REFRESH_TOKEN"))
-                .build());
+//        Pan115Repository pan115Repository = new DefaultPan115Repository();
+//        pan115Repository.refreshHttpHeaders("");
+//        pan115Repository.refreshToken(AttachmentDriver.builder()
+//                        .accessToken("").refreshToken(System.getenv("REFRESH_TOKEN"))
+//                .build());
     }
 }
