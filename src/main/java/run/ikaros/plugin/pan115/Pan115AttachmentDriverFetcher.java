@@ -61,12 +61,10 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
         Assert.isTrue(driverId >= 0, "driverId is negative");
         log.debug("Do checkoutToken for driverId={}", driverId);
         return driverOperate.findById(driverId)
+                .filter(driver -> driver.getExpireTime() == null
+                        || driver.getExpireTime().isBefore(LocalDateTime.now()))
+                .flatMap(this::applyPan115Token)
                 .flatMap(driver -> {
-                    if (driver.getExpireTime() == null
-                            || driver.getExpireTime().isBefore(LocalDateTime.now())) {
-                        applyPan115Token(driver);
-                    }
-
                     pan115Repository.refreshHttpHeaders(driver.getAccessToken());
                     return driverOperate.save(driver);
                 });
@@ -182,9 +180,9 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
                 pan115Repository.openUFileSteamWithRange(attachment.getUrl(), start, end));
     }
 
-    private void applyPan115Token(AttachmentDriver driver) {
+    private Mono<AttachmentDriver> applyPan115Token(AttachmentDriver driver) {
         Assert.notNull(driver, "'driver' must not null.");
-        pan115Repository.refreshToken(driver);
+        return pan115Repository.refreshToken(driver);
     }
 
 }
