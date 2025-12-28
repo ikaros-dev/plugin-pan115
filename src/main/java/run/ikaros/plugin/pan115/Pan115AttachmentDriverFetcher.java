@@ -2,21 +2,18 @@ package run.ikaros.plugin.pan115;
 
 import lombok.extern.slf4j.Slf4j;
 import org.pf4j.Extension;
-import org.springframework.stereotype.Component;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 import run.ikaros.api.core.attachment.Attachment;
 import run.ikaros.api.core.attachment.AttachmentDriver;
 import run.ikaros.api.core.attachment.AttachmentDriverFetcher;
 import run.ikaros.api.core.attachment.AttachmentDriverOperate;
 import run.ikaros.api.infra.utils.StringUtils;
-import run.ikaros.api.wrap.PagingWrap;
 import run.ikaros.api.store.enums.AttachmentDriverType;
 import run.ikaros.api.store.enums.AttachmentType;
 import run.ikaros.plugin.pan115.model.Pan115Attachment;
-import run.ikaros.plugin.pan115.model.Pan115Folder;
 import run.ikaros.plugin.pan115.model.Pan115Path;
 import run.ikaros.plugin.pan115.repository.Pan115Repository;
 import run.ikaros.plugin.pan115.utils.FileUtils;
@@ -163,6 +160,16 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
             // not image
             return checkoutMono.map(driver -> pan115Repository.openUFileDownUrl(attachment.getUrl()));
         }
+    }
+
+    @Override
+    public Flux<DataBuffer> getSteam(Attachment attachment) {
+        Assert.notNull(attachment, "'attachment' must not null.");
+        AttachmentType type = attachment.getType();
+        if (AttachmentType.Driver_Directory.equals(type)) return Flux.empty();
+        Long driverId = attachment.getDriverId();
+        Mono<AttachmentDriver> checkoutMono = checkoutToken(driverId);
+        return checkoutMono.flatMapMany(driver -> pan115Repository.openUFileSteam(attachment.getUrl()));
     }
 
     private void applyPan115Token(AttachmentDriver driver) {

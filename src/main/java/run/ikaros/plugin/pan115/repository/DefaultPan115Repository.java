@@ -3,16 +3,24 @@ package run.ikaros.plugin.pan115.repository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferFactory;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.*;
-import org.springframework.http.client.ClientHttpRequestExecution;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.http.client.ClientHttpRequest;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RequestCallback;
+import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
+import reactor.core.scheduler.Schedulers;
 import run.ikaros.api.core.attachment.AttachmentDriver;
 import run.ikaros.plugin.pan115.Pan115Const;
 import run.ikaros.plugin.pan115.exception.Pan115RequestFailException;
@@ -22,18 +30,25 @@ import run.ikaros.plugin.pan115.model.Pan115Path;
 import run.ikaros.plugin.pan115.model.Pan115Result;
 import run.ikaros.plugin.pan115.utils.JsonUtils;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
-import java.net.URLEncoder;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static run.ikaros.plugin.pan115.Pan115Const.*;
 
 @Slf4j
 @Component
 public class DefaultPan115Repository implements Pan115Repository {
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = new RestTemplate(new SimpleClientHttpRequestFactory());
+    private final DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
     private final HttpHeaders headers = new HttpHeaders();
 
     @Override
@@ -238,8 +253,126 @@ public class DefaultPan115Repository implements Pan115Repository {
         }
     }
 
-    @Scheduled(fixedDelay = 5000)  // 5秒
-    public void fixedDelayTask() {
-        log.info("Fixed delay task - " + new Date());
+    @Override
+    public Flux<DataBuffer> openUFileSteam(String pickCode) {
+        Assert.hasText(pickCode, "'pickCode' must has text.");
+        final String uFileDownUrl = openUFileDownUrl(pickCode);
+        return streamFileWithRestTemplate(uFileDownUrl);
+        // return Flux.create(sink -> {
+        //     Schedulers.boundedElastic().schedule(() -> {
+        //         try {
+        //             ResponseEntity<byte[]> response = restTemplate.getForEntity(
+        //                     uFileDownUrl, byte[].class);
+        //             if (response.getStatusCode() == HttpStatus.OK &&
+        //                     response.getBody() != null) {
+        //                 // 一次性发送所有数据（适合小文件）
+        //                 DataBuffer dataBuffer = dataBufferFactory.allocateBuffer(
+        //                         response.getBody().length);
+        //                 dataBuffer.write(response.getBody());
+        //                 sink.next(dataBuffer);
+        //                 sink.complete();
+        //             } else {
+        //                 sink.error(new RuntimeException(
+        //                         "请求失败，状态码: " + response.getStatusCode()));
+        //             }
+        //         } catch (Exception e) {
+        //             sink.error(e);
+        //         }
+        //     });
+        // });
+    }
+
+
+    /**
+     * 使用 RestTemplate 获取文件流，转换为 Flux<DataBuffer>
+     *
+     * @param fileUrl   文件URL
+     * @param chunkSize 分块大小（字节），默认为 8192
+     * @return Flux<DataBuffer>
+     */
+    public Flux<DataBuffer> streamFileWithRestTemplate(String fileUrl, int chunkSize) {
+        if (chunkSize <= 0) {
+            chunkSize = 8192; // 默认8KB
+        }
+
+        final int finalChunkSize = chunkSize;
+
+        return Flux.create(sink -> {
+            // 使用 boundedElastic 调度器执行阻塞操作
+            Schedulers.boundedElastic().schedule(() -> {
+                try {
+                    String newUrl = fileUrl;
+                    if (StringUtils.isNoneBlank(newUrl)) {
+                        newUrl = URLDecoder.decode(newUrl, StandardCharsets.UTF_8);
+                    }
+                    log.debug("Open stream for url: {}", newUrl);
+                    restTemplate.execute(newUrl, HttpMethod.GET, new RequestCallback() {
+                                @Override
+                                public void doWithRequest(ClientHttpRequest request) throws IOException {
+                                    request.getHeaders().addAll(headers);
+                                }
+                            },
+                            (ResponseExtractor<Void>) response -> {
+                                if (response.getStatusCode() != HttpStatus.OK) {
+                                    sink.error(new RuntimeException(
+                                            "请求失败，状态码: " + response.getStatusCode()));
+                                    return null;
+                                }
+
+                                try (InputStream inputStream = response.getBody()) {
+                                    byte[] buffer = new byte[finalChunkSize];
+                                    int bytesRead;
+                                    AtomicBoolean isCanceled = new AtomicBoolean(false);
+
+                                    sink.onCancel(() -> {
+                                        isCanceled.set(true);
+                                        try {
+                                            inputStream.close();
+                                        } catch (IOException e) {
+                                            // 忽略关闭异常
+                                        }
+                                    });
+
+                                    while (!isCanceled.get() &&
+                                            (bytesRead = inputStream.read(buffer)) != -1) {
+
+                                        // 创建 DataBuffer
+                                        DataBuffer dataBuffer = dataBufferFactory.allocateBuffer(bytesRead);
+                                        dataBuffer.write(buffer, 0, bytesRead);
+
+                                        // 发布数据块
+                                        sink.next(dataBuffer);
+
+                                        // 检查是否取消
+                                        if (sink.isCancelled()) {
+                                            log.debug("Close stream for url: {}", fileUrl);
+                                            break;
+                                        }
+                                    }
+
+                                    if (!isCanceled.get()) {
+                                        sink.complete();
+                                    }
+                                } catch (Exception e) {
+                                    if (!sink.isCancelled()) {
+                                        sink.error(e);
+                                    }
+                                }
+                                return null;
+                            });
+                } catch (Exception e) {
+                    if (!sink.isCancelled()) {
+                        sink.error(e);
+                    }
+                }
+            });
+        }, FluxSink.OverflowStrategy.BUFFER);
+    }
+
+    /**
+     * 简化版本：使用默认分块大小
+     */
+    public Flux<DataBuffer> streamFileWithRestTemplate(String fileUrl) {
+        return streamFileWithRestTemplate(fileUrl, 8192);
     }
 }
