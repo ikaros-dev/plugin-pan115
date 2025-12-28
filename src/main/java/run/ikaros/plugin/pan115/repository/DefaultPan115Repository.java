@@ -16,6 +16,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
@@ -54,8 +55,14 @@ public class DefaultPan115Repository implements Pan115Repository, DisposableBean
 
     @Override
     public void refreshHttpHeaders(String accessToken) {
-        log.debug("refresh rest template headers...");
+        log.debug("refresh webclient headers...");
+        // 增大内存缓冲区限制，例如设为10MB
+        final int size = 10 * 1024 * 1024;
+        final ExchangeStrategies strategies = ExchangeStrategies.builder()
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(size))
+                .build();
         webClient = WebClient.builder()
+                .exchangeStrategies(strategies)
                 .baseUrl(Pan115Const.API_BASE)
                 .defaultHeader(HttpHeaders.USER_AGENT, REST_TEMPLATE_USER_AGENT)
                 .defaultHeader(HttpHeaders.COOKIE, "chii_searchDateLine=0")
