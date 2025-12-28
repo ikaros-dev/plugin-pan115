@@ -67,7 +67,7 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
                 .flatMap(driver -> {
                     pan115Repository.refreshHttpHeaders(driver.getAccessToken());
                     return driverOperate.save(driver);
-                });
+                }).switchIfEmpty(driverOperate.findById(driverId));
     }
 
     @Override
