@@ -4,7 +4,7 @@ name: PluginPan115
 # plugin entry class that extends BasePlugin
 clazz: run.ikaros.plugin.pan115.Pan115Plugin
 # plugin 'version' is a valid semantic version string (see semver.org).
-version: 1.0.7
+version: 1.0.8
 requires: ">=1.0.5"
 author:
   name: Ikaros OSS Team
