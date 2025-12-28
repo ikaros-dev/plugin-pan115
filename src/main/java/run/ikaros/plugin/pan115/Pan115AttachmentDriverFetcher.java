@@ -6,6 +6,7 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import run.ikaros.api.constant.OpenApiConst;
 import run.ikaros.api.core.attachment.Attachment;
 import run.ikaros.api.core.attachment.AttachmentDriver;
 import run.ikaros.api.core.attachment.AttachmentDriverFetcher;
@@ -131,17 +132,18 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
         if (AttachmentType.Driver_Directory.equals(type)) return Mono.just(attachment.getUrl());
         String name = attachment.getName();
         Long driverId = attachment.getDriverId();
-        Mono<AttachmentDriver> checkoutMono = checkoutToken(driverId);
-        if (FileUtils.isImage(name)) {
-            return checkoutMono.map(driver -> attachment.getUrl());
-        } else if (FileUtils.isVideo(name)) {
-            return checkoutMono.flatMap(driver -> pan115Repository.openVideoPlay(attachment.getUrl()));
-        } else if (FileUtils.isVoice(name)) {
-            return parseDownloadUrl(attachment);
-        } else {
-            // doc
-            return checkoutMono.map(driver -> attachment.getUrl());
-        }
+        final String attStreamUrl = OpenApiConst.ATT_STREAM_ENDPOINT_PREFIX + '/' + attachment.getId();
+        return checkoutToken(driverId).map(driver -> attStreamUrl);
+        // if (FileUtils.isImage(name)) {
+        //     return checkoutMono.map(driver -> attachment.getUrl());
+        // } else if (FileUtils.isVideo(name)) {
+        //     return checkoutMono.flatMap(driver -> pan115Repository.openVideoPlay(attachment.getUrl()));
+        // } else if (FileUtils.isVoice(name)) {
+        //     return parseDownloadUrl(attachment);
+        // } else {
+        //     // doc
+        //     return checkoutMono.map(driver -> attachment.getUrl());
+        // }
     }
 
     @Override
