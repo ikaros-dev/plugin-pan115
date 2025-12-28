@@ -258,28 +258,105 @@ public class DefaultPan115Repository implements Pan115Repository {
         Assert.hasText(pickCode, "'pickCode' must has text.");
         final String uFileDownUrl = openUFileDownUrl(pickCode);
         return streamFileWithRestTemplate(uFileDownUrl);
-        // return Flux.create(sink -> {
-        //     Schedulers.boundedElastic().schedule(() -> {
-        //         try {
-        //             ResponseEntity<byte[]> response = restTemplate.getForEntity(
-        //                     uFileDownUrl, byte[].class);
-        //             if (response.getStatusCode() == HttpStatus.OK &&
-        //                     response.getBody() != null) {
-        //                 // 一次性发送所有数据（适合小文件）
-        //                 DataBuffer dataBuffer = dataBufferFactory.allocateBuffer(
-        //                         response.getBody().length);
-        //                 dataBuffer.write(response.getBody());
-        //                 sink.next(dataBuffer);
-        //                 sink.complete();
-        //             } else {
-        //                 sink.error(new RuntimeException(
-        //                         "请求失败，状态码: " + response.getStatusCode()));
-        //             }
-        //         } catch (Exception e) {
-        //             sink.error(e);
-        //         }
-        //     });
-        // });
+    }
+
+    @Override
+    public Flux<DataBuffer> openUFileSteamWithRange(String pickCode, long start, long end) {
+        Assert.hasText(pickCode, "'pickCode' must has text.");
+        final String uFileDownUrl = openUFileDownUrl(pickCode);
+        return streamFileWithRestTemplateWithRange(uFileDownUrl, start, end, 8192);
+    }
+
+    private Flux<DataBuffer> streamFileWithRestTemplateWithRange(String uFileDownUrl, Long start, Long end, int chunkSize) {
+        if (chunkSize <= 0) {
+            chunkSize = 8192; // 默认8KB
+        }
+
+        final int finalChunkSize = chunkSize;
+
+        // 设置 Range 请求头
+        String rangeHeader;
+        if (start != null && end != null) {
+            rangeHeader = String.format("bytes=%d-%d", start, end);
+        } else if (start != null) {
+            rangeHeader = String.format("bytes=%d-", start);
+        } else {
+            rangeHeader = "bytes=0-"; // 默认从头开始
+        }
+
+        return Flux.create(sink -> {
+            // 使用 boundedElastic 调度器执行阻塞操作
+            Schedulers.boundedElastic().schedule(() -> {
+                try {
+                    String newUrl = uFileDownUrl;
+                    if (StringUtils.isNoneBlank(newUrl)) {
+                        newUrl = URLDecoder.decode(newUrl, StandardCharsets.UTF_8);
+                    }
+                    log.debug("Open stream range from {} to {} for url: {}", start, end, newUrl);
+                    restTemplate.execute(newUrl, HttpMethod.GET, new RequestCallback() {
+                                @Override
+                                public void doWithRequest(ClientHttpRequest request) throws IOException {
+                                    request.getHeaders().set(HttpHeaders.RANGE, rangeHeader);
+                                    request.getHeaders().addAll(headers);
+                                }
+                            },
+                            (ResponseExtractor<Void>) response -> {
+                                if (response.getStatusCode() != HttpStatus.PARTIAL_CONTENT) {
+                                    sink.error(new RuntimeException(
+                                            "请求失败，状态码: " + response.getStatusCode()));
+                                    return null;
+                                }
+
+                                try (InputStream inputStream = response.getBody()) {
+                                    byte[] buffer = new byte[finalChunkSize];
+                                    int bytesRead;
+                                    AtomicBoolean isCanceled = new AtomicBoolean(false);
+
+                                    sink.onCancel(() -> {
+                                        isCanceled.set(true);
+                                        try {
+                                            inputStream.close();
+                                        } catch (IOException e) {
+                                            // 忽略关闭异常
+                                        }
+                                    });
+
+                                    while (!isCanceled.get() &&
+                                            (bytesRead = inputStream.read(buffer)) != -1) {
+
+                                        // 创建 DataBuffer
+                                        DataBuffer dataBuffer = dataBufferFactory.allocateBuffer(bytesRead);
+                                        dataBuffer.write(buffer, 0, bytesRead);
+
+                                        // 发布数据块
+                                        sink.next(dataBuffer);
+
+                                        // 检查是否取消
+                                        if (sink.isCancelled()) {
+                                            log.debug("Close stream range from {} to {} for url: {}", start, end, uFileDownUrl);
+                                            break;
+                                        }
+                                    }
+
+                                    if (!isCanceled.get()) {
+                                        sink.complete();
+                                    }
+                                } catch (Exception e) {
+                                    if (!sink.isCancelled()) {
+                                        sink.error(e);
+                                    }
+                                }
+                                return null;
+                            });
+                } catch (Exception e) {
+                    if (!sink.isCancelled()) {
+                        sink.error(e);
+                    }
+                } finally {
+                    headers.remove(HttpHeaders.RANGE);
+                }
+            });
+        }, FluxSink.OverflowStrategy.BUFFER);
     }
 
 

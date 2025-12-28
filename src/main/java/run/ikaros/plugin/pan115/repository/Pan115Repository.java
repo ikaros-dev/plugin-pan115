@@ -1,5 +1,6 @@
 package run.ikaros.plugin.pan115.repository;
 
+import org.reactivestreams.Publisher;
 import org.springframework.core.io.buffer.DataBuffer;
 import reactor.core.publisher.Flux;
 import run.ikaros.api.core.attachment.AttachmentDriver;
@@ -25,4 +26,6 @@ public interface Pan115Repository {
     String openVideoPlay(String pickCode);
 
     Flux<DataBuffer> openUFileSteam(String pickCode);
+
+    Flux<DataBuffer> openUFileSteamWithRange(String pickCode, long start, long end);
 }

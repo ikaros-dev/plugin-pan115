@@ -172,6 +172,17 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
         return checkoutMono.flatMapMany(driver -> pan115Repository.openUFileSteam(attachment.getUrl()));
     }
 
+    @Override
+    public Flux<DataBuffer> getSteam(Attachment attachment, long start, long end) {
+        Assert.notNull(attachment, "'attachment' must not null.");
+        AttachmentType type = attachment.getType();
+        if (AttachmentType.Driver_Directory.equals(type)) return Flux.empty();
+        Long driverId = attachment.getDriverId();
+        Mono<AttachmentDriver> checkoutMono = checkoutToken(driverId);
+        return checkoutMono.flatMapMany(driver ->
+                pan115Repository.openUFileSteamWithRange(attachment.getUrl(), start, end));
+    }
+
     private void applyPan115Token(AttachmentDriver driver) {
         Assert.notNull(driver, "'driver' must not null.");
         pan115Repository.refreshToken(driver);
