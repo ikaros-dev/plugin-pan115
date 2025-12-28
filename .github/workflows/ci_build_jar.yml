@@ -44,7 +44,7 @@ jobs:
         with:
           repo_token: ${{ secrets.CHIVEHAO_TOKEN }}
           file: /home/runner/work/plugin-pan115/plugin-pan115/build/libs/plugin-pan115-${{steps.get_version.outputs.version}}.jar
-          asset_name: plugin-bgmtv-${{steps.get_version.outputs.version}}.jar
+          asset_name: plugin-pan115-${{steps.get_version.outputs.version}}.jar
 
 
 
