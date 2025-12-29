@@ -177,6 +177,7 @@ public class DefaultPan115Repository implements Pan115Repository, DisposableBean
                     log.info("Refresh pan115 token for driver={}", driver.getMountName());
                     return Mono.just(driver);
                 })
+                .doOnSuccess(driver1 -> refreshHttpHeaders(driver1.getAccessToken()))
                 .doOnError(HttpClientErrorException.class, e ->
                         log.warn("req pan115 refresh token fail for drier={}", driver.getId()));
     }
