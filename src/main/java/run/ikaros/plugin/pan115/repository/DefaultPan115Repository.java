@@ -10,6 +10,7 @@ import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
@@ -163,6 +164,16 @@ public class DefaultPan115Repository implements Pan115Repository, DisposableBean
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .bodyValue(body)
                 .exchangeToMono(rsp -> rsp.bodyToMono(Pan115Result.class))
+                .flatMap(r -> {
+                    if (r == null) {
+                        return Mono.error(new Pan115RequestFailException(HttpStatusCode.valueOf(400),
+                                "request pan 115 api fail with result is null"));
+                    }
+                    if (!r.getState()) {
+                        return Mono.error(new Pan115RequestFailException(r.getMessage(), r.getCode()));
+                    }
+                    return Mono.just(r);
+                })
                 .filter(r -> Objects.nonNull(r) && r.getState())
                 .flatMap(r -> {
                     if (!r.getState()) {
