@@ -11,6 +11,7 @@ import run.ikaros.api.core.attachment.Attachment;
 import run.ikaros.api.core.attachment.AttachmentDriver;
 import run.ikaros.api.core.attachment.AttachmentDriverFetcher;
 import run.ikaros.api.core.attachment.AttachmentDriverOperate;
+import run.ikaros.api.infra.utils.AssertUtils;
 import run.ikaros.api.infra.utils.StringUtils;
 import run.ikaros.api.store.enums.AttachmentDriverType;
 import run.ikaros.api.store.enums.AttachmentType;
@@ -23,6 +24,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Extension
@@ -57,8 +59,8 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
                 .then();
     }
 
-    private Mono<AttachmentDriver> checkoutToken(Long driverId) {
-        Assert.isTrue(driverId >= 0, "driverId is negative");
+    private Mono<AttachmentDriver> checkoutToken(UUID driverId) {
+        AssertUtils.notNull(driverId, "'driverId' must not null.");
         log.debug("Do checkoutToken for driverId={}", driverId);
         return driverOperate.findById(driverId)
                 .filter(driver -> driver.getExpireTime() != null
@@ -69,9 +71,9 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
     }
 
     @Override
-    public Flux<Attachment> getChildren(Long driverId, Long pid, String remotePath) {
-        Assert.isTrue(driverId >= 0, "driverId is negative");
-        Assert.isTrue(pid >= 0, "pid is negative");
+    public Flux<Attachment> getChildren(UUID driverId, UUID pid, String remotePath) {
+        Assert.notNull(driverId, "driverId must not null");
+        Assert.notNull(pid, "pid must not null");
         // 115 网盘挂载的这个属性其实就是目录ID(cid/fid)
         String cid = StringUtils.isEmpty(remotePath) ? "0" : remotePath;
 
@@ -127,7 +129,7 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
         AttachmentType type = attachment.getType();
         if (AttachmentType.Driver_Directory.equals(type)) return Mono.just(attachment.getUrl());
         String name = attachment.getName();
-        Long driverId = attachment.getDriverId();
+        UUID driverId = attachment.getDriverId();
         final String attStreamUrl = OpenApiConst.ATT_STREAM_ENDPOINT_PREFIX + '/' + attachment.getId();
         return checkoutToken(driverId).map(driver -> attStreamUrl);
         // if (FileUtils.isImage(name)) {
@@ -148,7 +150,7 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
         AttachmentType type = attachment.getType();
         if (AttachmentType.Driver_Directory.equals(type)) return Mono.just(attachment.getUrl());
         String name = attachment.getName();
-        Long driverId = attachment.getDriverId();
+        UUID driverId = attachment.getDriverId();
         Mono<AttachmentDriver> checkoutMono = checkoutToken(driverId);
         if (FileUtils.isImage(name)) {
             return checkoutMono.map(driver -> attachment.getUrl());
@@ -163,7 +165,7 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
         Assert.notNull(attachment, "'attachment' must not null.");
         AttachmentType type = attachment.getType();
         if (AttachmentType.Driver_Directory.equals(type)) return Flux.empty();
-        Long driverId = attachment.getDriverId();
+        UUID driverId = attachment.getDriverId();
         return checkoutToken(driverId)
                 .flatMapMany(driver -> pan115Repository.openUFileSteam(attachment.getUrl()));
     }
@@ -173,7 +175,7 @@ public class Pan115AttachmentDriverFetcher implements AttachmentDriverFetcher {
         Assert.notNull(attachment, "'attachment' must not null.");
         AttachmentType type = attachment.getType();
         if (AttachmentType.Driver_Directory.equals(type)) return Flux.empty();
-        Long driverId = attachment.getDriverId();
+        UUID driverId = attachment.getDriverId();
         return checkoutToken(driverId).flatMapMany(driver ->
                 pan115Repository.openUFileSteamWithRange(attachment.getUrl(), start, end));
     }
