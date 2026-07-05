@@ -14,7 +14,7 @@ ext {
     springContext = '6.0.3'
     pf4j = '3.8.0'
     lombok = '1.18.34'
-    libFile = 'lib/api-1.1.0.jar'
+    libFile = 'lib/api-1.2.0.jar'
 }
 
 
